@@ -1,0 +1,27 @@
+plugins {
+    // This plugin allows you to create different environments
+    // for your gradle deploy. Each environment is represented
+    // by a gradle-${env}.properties file
+    // See https://github.com/stevesaliman/gradle-properties-plugin
+    // specify the env on the command line with:
+    // gradle -PenvironmentName=x ...
+    id 'net.saliman.properties' version '1.4.6'
+
+    // This gradle plugin extends the ml-gradle plugin with
+    // commands that make the Data Hub Framework do its magic
+    id 'com.marklogic.ml-data-hub' version '4.0.1'
+}
+
+// Bugfix for DHF4 - see https://github.com/marklogic/marklogic-data-hub/pull/1416
+ext {
+    def loadModulesCommand = mlAppDeployer.getCommand("LoadModulesCommand")
+    mlAppDeployer.getCommand("LoadHubModulesCommand").setExecuteSortOrder(loadModulesCommand.getExecuteSortOrder() - 1)
+}
+
+// Bugfix for DHF4
+task deleteModuleTimestampsFile(type: Delete) {
+    description = "Use this as mlDeleteModuleTimestampsFile doesn't seem to work with DHF4"
+    delete "build/ml-javaclient-util/module-timestamps.properties"
+}
+mlReloadModules.dependsOn deleteModuleTimestampsFile
+mlDeploy.dependsOn deleteModuleTimestampsFile
