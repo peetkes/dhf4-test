@@ -25,3 +25,23 @@ task deleteModuleTimestampsFile(type: Delete) {
 }
 mlReloadModules.dependsOn deleteModuleTimestampsFile
 mlDeploy.dependsOn deleteModuleTimestampsFile
+
+task testLoadModule {
+    doLast {
+        // See https://docs.marklogic.com/javadoc/client/com/marklogic/client/DatabaseClientFactory.html
+        def host = mlHost
+        def port = mlFinalPort.toInteger()
+        def database = mlModulesDbName
+        def username = mlUsername
+        def password = mlPassword
+
+        // See https://docs.marklogic.com/javadoc/client/com/marklogic/client/DatabaseClientFactory.SecurityContext.html
+        def context = new com.marklogic.client.DatabaseClientFactory.DigestAuthContext(username, password)
+        def client = com.marklogic.client.DatabaseClientFactory.newClient(host, port, database, context)
+        try {
+            client.newDocumentManager().write("/test/module2.xqy", new com.marklogic.client.io.StringHandle("<hello>world</hello>"))
+        } finally {
+            client.release()
+        }
+    }
+}
