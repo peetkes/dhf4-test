@@ -1,0 +1,15 @@
+{
+  "axis-name": "tmp-valid",
+  "axis-start": {
+    "element-reference": {
+      "namespace-uri": "http://example.com/tmp",
+      "localname": "validStart"
+    }
+  },
+  "axis-end": {
+    "element-reference": {
+      "namespace-uri": "http://example.com/tmp",
+      "localname": "validEnd"
+    }
+  }
+}

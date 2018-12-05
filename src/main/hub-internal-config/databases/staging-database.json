@@ -1,6 +1,34 @@
 {
   "database-name": "%%mlStagingDbName%%",
-  "range-element-index": [],
+  "range-element-index" : [ {
+    "collation" : "http://marklogic.com/collation/codepoint",
+    "invalid-values" : "reject",
+    "localname" : "validStart",
+    "namespace-uri" : "http://example.com/tmp",
+    "range-value-positions" : false,
+    "scalar-type" : "dateTime"
+  }, {
+    "collation" : "http://marklogic.com/collation/codepoint",
+    "invalid-values" : "reject",
+    "localname" : "ValidEnd",
+    "namespace-uri" : "http://example.com/tmp",
+    "range-value-positions" : false,
+    "scalar-type" : "dateTime"
+  },{
+    "collation" : "http://marklogic.com/collation/codepoint",
+    "invalid-values" : "reject",
+    "localname" : "systemStart",
+    "namespace-uri" : "http://example.com/tmp",
+    "range-value-positions" : false,
+    "scalar-type" : "dateTime"
+  }, {
+    "collation" : "http://marklogic.com/collation/codepoint",
+    "invalid-values" : "reject",
+    "localname" : "systemEnd",
+    "namespace-uri" : "http://example.com/tmp",
+    "range-value-positions" : false,
+    "scalar-type" : "dateTime"
+  } ],
   "schema-database": "%%mlStagingSchemasDbName%%",
   "triggers-database": "%%mlStagingTriggersDbName%%",
   "triple-index": true,

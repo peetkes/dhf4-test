@@ -1,0 +1,32 @@
+{
+  "info" : {
+    "title" : "User",
+    "version" : "0.0.1",
+    "baseUri" : "http://example.com/entity-types/",
+    "description" : "An User entity"
+  },
+  "definitions" : {
+    "User" : {
+      "namespace": "http://example.com/entity-types/user",
+      "namespacePrefix" : "usr",
+      "description" : "The User entity root.",
+      "required" : [ "Id", "Name" ],
+      "elementRangeIndex" : [  "Id", "Name" ],
+      "rangeIndex": [ ],
+      "wordLexicon" : [ ],
+      "pii" : [ ],
+      "properties" : {
+        "Id": {
+          "datatype": "string",
+          "collation": "http://marklogic.com/collation/codepoint",
+          "description":""
+        },
+        "Name": {
+          "datatype": "string",
+          "collation": "http://marklogic.com/collation/codepoint",
+          "description":""
+        }
+      }
+    }
+  }
+}

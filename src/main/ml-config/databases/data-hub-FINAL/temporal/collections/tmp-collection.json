@@ -1,0 +1,6 @@
+{
+  "collection-name": "%%mlTemporalCollection%%",
+  "system-axis": "tmp-system",
+  "valid-axis" : "tmp-valid",
+  "option": ["updates-safe"]
+}

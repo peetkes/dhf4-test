@@ -11,5 +11,6 @@
   "error-handler": "/data-hub/4/rest-api/error-handler.xqy",
   "url-rewriter": "/data-hub/4/rest-api/rewriter.xml",
   "rewrite-resolves-globally": true,
-  "ssl-certificate-template": "%%mlSslCertificateTemplate%%"
+  "ssl-certificate-template": "%%mlSslCertTemplateName%%",
+  "ssl-require-client-certificate": "%%mlSslReqClntCert%%"
 }

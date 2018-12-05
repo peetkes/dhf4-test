@@ -1,3 +1,14 @@
+buildscript {
+    repositories {
+        maven {url 'http://distro.marklogic.com/nexus/repository/maven-releases/'}
+        mavenLocal()
+        jcenter()
+    }
+    dependencies {
+        classpath "com.marklogic:ml-data-hub:4.1.0-rc1"
+    }
+}
+
 plugins {
     // This plugin allows you to create different environments
     // for your gradle deploy. Each environment is represented
@@ -7,79 +18,155 @@ plugins {
     // gradle -PenvironmentName=x ...
     id 'net.saliman.properties' version '1.4.6'
 
-    // This gradle plugin extends the ml-gradle plugin with
-    // commands that make the Data Hub Framework do its magic
-    id 'com.marklogic.ml-data-hub' version '4.0.1'
-    id 'com.avast.gradle.docker-compose' version "0.6.11"
 }
 
-dockerCompose {
-    useComposeFiles = ['docker-compose.yml']
-    waitForTcpPorts = false
+repositories {
+    jcenter()
+    maven { url "https://dl.bintray.com/rjrudin/maven/" }
+    maven { url "https://developer.marklogic.com/maven2/" }
 }
 
-task mlDockerSetupNode(dependsOn:composeUp)  {
-    doLast {
-        sleep(5 * 1000) //ensure node is up
-        exec {
-            commandLine 'docker', 'exec', 'dhf4-server.local', 'init-marklogic'
+configurations {
+    mlcp {
+        resolutionStrategy {
+            force "xml-apis:xml-apis:1.4.01"
         }
     }
 }
 
-
-task mlDockerDeploy(dependsOn:[mlDockerSetupNode])
-
-task mlDockerStart(dependsOn:composeUp)
-
-task mlDockerStop(type:Exec) {
-    commandLine "docker-compose", "-f", 'docker-compose.yml', "stop"
+dependencies {
+    mlcp "com.marklogic:mlcp:9.0.7"
+    mlcp files("mlcp")
 }
 
-task mlDockerTeardown(type: Delete, dependsOn:composeDown) {
-    //remove logs directory
-    delete 'logs'
-}
+apply plugin: "com.marklogic.ml-data-hub"
 
+/*
 ext {
     if (project.property("environmentName") == 'https') {
         def command = new com.marklogic.appdeployer.command.security.GenerateTemporaryCertificateCommand()
         command.setTemplateIdOrName(mlSslCertificateTemplate)
         command.setCommonName("localhost")
         command.setValidFor(365)
-        mlAppDeployer.commands.add(command)        
+        mlAppDeployer.commands.add(command)
     }
 }
-// Bugfix for DHF4 - see https://github.com/marklogic/marklogic-data-hub/pull/1416
-ext {
-    def loadModulesCommand = mlAppDeployer.getCommand("LoadModulesCommand")
-    mlAppDeployer.getCommand("LoadHubModulesCommand").setExecuteSortOrder(loadModulesCommand.getExecuteSortOrder() - 1)
+*/
+
+
+task importUsers(type: com.marklogic.gradle.task.MlcpTask) {
+    classpath = configurations.mlcp
+    command = "IMPORT"
+    port = mlStagingPort.toInteger()
+    input_file_path = "data/"
+    input_file_type = "documents"
+    output_uri_replace = "data/,''"
+    output_permissions = mlHubUserRole + ",read," + mlHubUserRole + ",update"
+    output_uri_prefix = "/Users"
+    output_collections = "User,RAW"
+    transform_module = "/data-hub/4/transforms/mlcp-flow-transform.xqy"
+    transform_namespace = "http://marklogic.com/data-hub/mlcp-flow-transform"
+//    transform_module = "/ext/data-hub-framework/transforms/mlcp-flow-transform.xqy"
+//    transform_namespace = "http://example.com/ext/data-hub-framework/transforms/mlcp-flow-transform"
+    transform_param = 'entity-name=User,flow-name=ImportUsers,options={"dhf.key":"value","dhf.key2":"value2"}'
+    temporal_collection = mlTemporalCollection
+    args = ["-ssl", "-modules_root","/"]
 }
 
-// Bugfix for DHF4
-task deleteModuleTimestampsFile(type: Delete) {
-    description = "Use this as mlDeleteModuleTimestampsFile doesn't seem to work with DHF4"
-    delete "build/ml-javaclient-util/module-timestamps.properties"
+task harmonizeUsers(type: com.marklogic.gradle.task.RunFlowTask) {
+    doFirst {
+        project.ext.entityName = "User"
+        project.ext.flowName = "HarmonizeUsers"
+        project.ext.flowType = "harmonize"
+        project.ext.sourceDB = mlStagingDbName
+        project.ext.destDB = mlFinalDbName
+        project.ext.showOptions = "true"
+        project.ext["dhf.key"]= "some value"
+    }
 }
-mlReloadModules.dependsOn deleteModuleTimestampsFile
-mlDeploy.dependsOn deleteModuleTimestampsFile
 
-task testLoadModule {
+import com.marklogic.client.DatabaseClientFactory
+import com.marklogic.client.ext.helper.ClientHelper
+import com.marklogic.client.ext.modulesloader.ssl.SimpleX509TrustManager
+
+task clearFinalTemporalDocuments(type: com.marklogic.gradle.task.MarkLogicTask) {
     doLast {
-        // See https://docs.marklogic.com/javadoc/client/com/marklogic/client/DatabaseClientFactory.html
-        def host = mlHost
-        def port = mlFinalPort.toInteger()
-        def database = mlModulesDbName
-        def username = mlUsername
-        def password = mlPassword
-
-        // See https://docs.marklogic.com/javadoc/client/com/marklogic/client/DatabaseClientFactory.SecurityContext.html
-        def context = new com.marklogic.client.DatabaseClientFactory.DigestAuthContext(username, password)
-        def client = com.marklogic.client.DatabaseClientFactory.newClient(host, port, database, context)
-        try {
-            client.newDocumentManager().write("/test/module2.xqy", new com.marklogic.client.io.StringHandle("<hello>world</hello>"))
-        } finally {
-            client.release()
-        }
+        logger.info("Running clearTemporalDocuments Final")
+        def xq = "xquery version \"1.0-ml\"; \n" +
+                " \n" +
+                "import module namespace temporal = \"http://marklogic.com/xdmp/temporal\" \n" +
+                "      at \"/MarkLogic/temporal.xqy\";\n" +
+                "\n" +
+                "temporal:collection-set-options(\""+ mlTemporalCollection + "\", (\"updates-admin-override\")) \n" +
+                ";\n" +
+                "xdmp:collection-delete(\"Mine\")\n" +
+                ";\n" +
+                "xquery version \"1.0-ml\"; \n" +
+                " \n" +
+                "import module namespace temporal = \"http://marklogic.com/xdmp/temporal\" \n" +
+                "      at \"/MarkLogic/temporal.xqy\";\n" +
+                "\n" +
+                "temporal:collection-set-options(\""+ mlTemporalCollection + "\", (\"updates-safe\"));"
+        def sslContext = SimpleX509TrustManager.newSSLContext()
+        def sslHostnameVerifier =  DatabaseClientFactory.SSLHostnameVerifier.ANY
+        def context = new DatabaseClientFactory.DigestAuthContext(
+                getAppConfig().getRestAdminUsername(),
+                getAppConfig().getRestAdminPassword()
+        ).withSSLContext(sslContext).withSSLHostnameVerifier(sslHostnameVerifier)
+        def client = DatabaseClientFactory.newClient(
+                getAppConfig().getHost(),
+                getAppConfig().getAppServicesPort(),
+                mlFinalDbName,
+                context
+        )
+        def clientHelper = new ClientHelper(client)
+        clientHelper.eval(xq)
+        logger.info("Done clearTemporalDocuments Final")
     }
 }
+
+
+task clearStagingTemporalDocuments(type: com.marklogic.gradle.task.MarkLogicTask) {
+    doLast {
+        logger.info("Running clearTemporalDocuments Staging")
+        def xq = "xquery version \"1.0-ml\"; \n" +
+                " \n" +
+                "import module namespace temporal = \"http://marklogic.com/xdmp/temporal\" \n" +
+                "      at \"/MarkLogic/temporal.xqy\";\n" +
+                "\n" +
+                "temporal:collection-set-options(\""+ mlTemporalCollection + "\", (\"updates-admin-override\")) \n" +
+                ";\n" +
+                "xdmp:collection-delete(\"RAW\")\n" +
+                ";\n" +
+                "xquery version \"1.0-ml\"; \n" +
+                " \n" +
+                "import module namespace temporal = \"http://marklogic.com/xdmp/temporal\" \n" +
+                "      at \"/MarkLogic/temporal.xqy\";\n" +
+                "\n" +
+                "temporal:collection-set-options(\""+ mlTemporalCollection + "\", (\"updates-safe\"));"
+        def sslContext = SimpleX509TrustManager.newSSLContext()
+        def sslHostnameVerifier =  DatabaseClientFactory.SSLHostnameVerifier.ANY
+        def context = new DatabaseClientFactory.DigestAuthContext(
+                getAppConfig().getRestAdminUsername(),
+                getAppConfig().getRestAdminPassword()
+        ).withSSLContext(sslContext).withSSLHostnameVerifier(sslHostnameVerifier)
+        def client = DatabaseClientFactory.newClient(
+                getAppConfig().getHost(),
+                getAppConfig().getAppServicesPort(),
+                mlStagingDbName,
+                context
+        )
+        def clientHelper = new ClientHelper(client)
+        clientHelper.eval(xq)
+        logger.info("Done clearTemporalDocuments Staging")
+    }
+}
+
+task setClearJobsDatabaseProperties {
+    description = "Sets properties needed by mlClearDatabase to clear the jobs database"
+    doLast {
+        project.ext.confirm = "true"
+        project.ext.database = mlJobsDbName
+    }
+}
+

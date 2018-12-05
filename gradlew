@@ -26,6 +26,9 @@ cd "$SAVED" >/dev/null
 
 APP_NAME="Gradle"
 APP_BASE_NAME=`basename "$0"`
+# Set the gradle home to be a local project directorys
+# GRADLE_USER_HOME="$APP_HOME/build/gradle-home"
+# echo "Setting the GRADLE_USER_HOME to $GRADLE_USER_HOME \n(needed for the creation of the offline repository)\n"
 
 # Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
 DEFAULT_JVM_OPTS=""

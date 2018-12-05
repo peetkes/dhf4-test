@@ -1,0 +1,15 @@
+{
+  "axis-name": "tmp-system",
+  "axis-start": {
+    "element-reference": {
+      "namespace-uri": "http://example.com/tmp",
+      "localname": "systemStart"
+    }
+  },
+  "axis-end": {
+    "element-reference": {
+      "namespace-uri": "http://example.com/tmp",
+      "localname": "systemEnd"
+    }
+  }
+}
