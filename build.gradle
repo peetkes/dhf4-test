@@ -18,6 +18,7 @@ plugins {
     // gradle -PenvironmentName=x ...
     id 'net.saliman.properties' version '1.4.6'
 
+    id 'com.avast.gradle.docker-compose' version "0.6.11"
 }
 
 repositories {
@@ -41,18 +42,33 @@ dependencies {
 
 apply plugin: "com.marklogic.ml-data-hub"
 
-/*
-ext {
-    if (project.property("environmentName") == 'https') {
-        def command = new com.marklogic.appdeployer.command.security.GenerateTemporaryCertificateCommand()
-        command.setTemplateIdOrName(mlSslCertificateTemplate)
-        command.setCommonName("localhost")
-        command.setValidFor(365)
-        mlAppDeployer.commands.add(command)
+def composeFile = "${dockerComposeFile}";
+
+dockerCompose {
+    useComposeFiles = [ composeFile ]
+    waitForTcpPorts = false
+}
+
+task mlDockerSetupNode(dependsOn:composeUp)  {
+    doLast {
+        sleep(5 * 1000) //ensure node is up
+        exec {
+            commandLine 'docker', 'exec', "${nodeName}", 'init-marklogic'
+        }
     }
 }
-*/
 
+
+task mlDockerStart(dependsOn:composeUp)
+
+task mlDockerStop(type:Exec) {
+    commandLine "docker-compose", "-f", composeFile,  "stop"
+}
+
+task mlDockerTeardown(type: Delete, dependsOn:composeDown) {
+    //remove logs directory
+    delete 'logs'
+}
 
 task importUsers(type: com.marklogic.gradle.task.MlcpTask) {
     classpath = configurations.mlcp

@@ -1,7 +1,8 @@
-# Test Project for deploying dhf4.0.1 project on ML
+# Test Project for deploying dhf4.1.0-rc1 project on ML
 
+You have to be connected to the MarkLogic VPN for this project to build
+ 
 Adjust properties in gradle.properties or add gradle-local.properties with your mileage:
-Also check the -http and -https properties files
 
 ````
 mlHost=....
