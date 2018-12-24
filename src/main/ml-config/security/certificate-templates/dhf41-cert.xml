@@ -1,0 +1,17 @@
+<certificate-template-properties xmlns="http://marklogic.com/manage">
+    <template-name>%%mlSslCertTemplateName%%</template-name>
+    <template-description>DHF 4.1.0 Certificate</template-description>
+    <key-type>rsa</key-type>
+    <key-options />
+    <req>
+        <version>0</version>
+        <subject>
+            <countryName>NL</countryName>
+            <stateOrProvinceName>Utrecht</stateOrProvinceName>
+            <localityName>Utrecht</localityName>
+            <organizationName>MarkLogic</organizationName>
+            <organizationalUnitName>Development</organizationalUnitName>
+            <emailAddress>nobody@marklogic.com</emailAddress>
+        </subject>
+    </req>
+</certificate-template-properties>

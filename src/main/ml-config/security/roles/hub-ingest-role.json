@@ -1,0 +1,5 @@
+{
+  "role-name": "%%mlHubIngestRole%%",
+  "description": "A role that allows the ingest user to write data in MarkLogic Data Hub database",
+  "role": ["rest-writer", "%%mlHubUserRole%%"]
+}

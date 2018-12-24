@@ -1,0 +1,9 @@
+{
+  "namespace": "http://marklogic.com/dhf41/ext/security/dhf-document-permissions",
+  "local-name": "create-roles",
+  "document-uri": "/ext/security/dhf-document-permissions.xqy",
+  "modules-database": "%%mlModulesDbName%%",
+  "role": [
+    "%%mlHubRoleMgtRole%%"
+  ]
+}

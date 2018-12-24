@@ -1,0 +1,6 @@
+{
+  "user-name": "%%mlHubIngestUser%%",
+  "description": "A user that is used for reading and writing OASIS docs from MarkLogic Data Hub databases",
+  "password": "%%mlHubIngestPassword%%",
+  "role": ["%%mlHubIngestRole%%"]
+}

@@ -1,11 +1,11 @@
 buildscript {
     repositories {
-        maven {url 'http://distro.marklogic.com/nexus/repository/maven-releases/'}
+        maven { url "https://developer.marklogic.com/maven2/" }
         mavenLocal()
         jcenter()
     }
     dependencies {
-        classpath "com.marklogic:ml-data-hub:4.1.0-rc1"
+        classpath "com.marklogic:marklogic-unit-test-client:0.12.0"
     }
 }
 
@@ -17,7 +17,7 @@ plugins {
     // specify the env on the command line with:
     // gradle -PenvironmentName=x ...
     id 'net.saliman.properties' version '1.4.6'
-
+    id 'com.marklogic.ml-data-hub' version '4.1.0'
     id 'com.avast.gradle.docker-compose' version "0.6.11"
 }
 
@@ -26,6 +26,10 @@ repositories {
     maven { url "https://dl.bintray.com/rjrudin/maven/" }
     maven { url "https://developer.marklogic.com/maven2/" }
 }
+
+apply plugin: 'java'
+apply plugin: 'idea'
+
 
 configurations {
     mlcp {
@@ -38,9 +42,13 @@ configurations {
 dependencies {
     mlcp "com.marklogic:mlcp:9.0.7"
     mlcp files("mlcp")
+    mlRestApi "com.marklogic:marklogic-unit-test-modules:0.12.0"
+
+    testCompile "com.marklogic:marklogic-unit-test-client:0.12.0"
 }
 
-apply plugin: "com.marklogic.ml-data-hub"
+group "nl.abnamro"
+version "0.1.0"
 
 def composeFile = "${dockerComposeFile}";
 
@@ -70,20 +78,44 @@ task mlDockerTeardown(type: Delete, dependsOn:composeDown) {
     delete 'logs'
 }
 
+def restSslContext = SSLContext.getInstance("TLSv1.2")
+restSslContext.init(null, [new SimpleX509TrustManager()] as TrustManager[], null)
+def restSslVerifier = DatabaseClientFactory.SSLHostnameVerifier.ANY
+
+ext {
+    // causes a temporary cert to be generated. This is necessary for MarkLogic
+    // to allow SSL connections on your AppServer. 
+    // The alternative is to create a proper signed cert
+    def command = new com.marklogic.appdeployer.command.security.GenerateTemporaryCertificateCommand()
+    command.setTemplateIdOrName("${mlSslCertTemplateName}")
+    command.setCommonName("localhost")
+    command.setValidFor(365)
+    mlAppDeployer.commands.add(command)
+
+    mlAppConfig.restSslContext = restSslContext
+    mlAppConfig.restSslHostnameVerifier = restSslVerifier
+    
+    mlAppConfig {
+//        customTokens.put("%%mlIngestRole%%", mlHubIngestRole)
+    }
+}
+
 task importUsers(type: com.marklogic.gradle.task.MlcpTask) {
     classpath = configurations.mlcp
     command = "IMPORT"
     port = mlStagingPort.toInteger()
+    username = mlHubIngestUser
+    password = mlHubIngestPassword
     input_file_path = "data/"
     input_file_type = "documents"
     output_uri_replace = "data/,''"
-    output_permissions = mlHubUserRole + ",read," + mlHubUserRole + ",update"
+    output_permissions = mlHubIngestRole + ",read," + mlHubIngestRole + ",update"
     output_uri_prefix = "/Users"
     output_collections = "User,RAW"
-    transform_module = "/data-hub/4/transforms/mlcp-flow-transform.xqy"
-    transform_namespace = "http://marklogic.com/data-hub/mlcp-flow-transform"
-//    transform_module = "/ext/data-hub-framework/transforms/mlcp-flow-transform.xqy"
-//    transform_namespace = "http://example.com/ext/data-hub-framework/transforms/mlcp-flow-transform"
+//    transform_module = "/data-hub/4/transforms/mlcp-flow-transform.xqy"
+//    transform_namespace = "http://marklogic.com/data-hub/mlcp-flow-transform"
+    transform_module = "/ext/data-hub-framework/transforms/mlcp-flow-transform.xqy"
+    transform_namespace = "http://example.com/ext/data-hub-framework/transforms/mlcp-flow-transform"
     transform_param = 'entity-name=User,flow-name=ImportUsers,options={"dhf.key":"value","dhf.key2":"value2"}'
     temporal_collection = mlTemporalCollection
     args = ["-ssl", "-modules_root","/"]
@@ -105,6 +137,9 @@ import com.marklogic.client.DatabaseClientFactory
 import com.marklogic.client.ext.helper.ClientHelper
 import com.marklogic.client.ext.modulesloader.ssl.SimpleX509TrustManager
 
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+
 task clearFinalTemporalDocuments(type: com.marklogic.gradle.task.MarkLogicTask) {
     doLast {
         logger.info("Running clearTemporalDocuments Final")
@@ -115,7 +150,7 @@ task clearFinalTemporalDocuments(type: com.marklogic.gradle.task.MarkLogicTask) 
                 "\n" +
                 "temporal:collection-set-options(\""+ mlTemporalCollection + "\", (\"updates-admin-override\")) \n" +
                 ";\n" +
-                "xdmp:collection-delete(\"Mine\")\n" +
+                "xdmp:collection-delete(\"" + mlTemporalCollection + "\")\n" +
                 ";\n" +
                 "xquery version \"1.0-ml\"; \n" +
                 " \n" +
@@ -152,7 +187,7 @@ task clearStagingTemporalDocuments(type: com.marklogic.gradle.task.MarkLogicTask
                 "\n" +
                 "temporal:collection-set-options(\""+ mlTemporalCollection + "\", (\"updates-admin-override\")) \n" +
                 ";\n" +
-                "xdmp:collection-delete(\"RAW\")\n" +
+                "xdmp:collection-delete(\"" + mlTemporalCollection + "\")\n" +
                 ";\n" +
                 "xquery version \"1.0-ml\"; \n" +
                 " \n" +

@@ -1,0 +1,38 @@
+{
+  "role-name": "%%mlHubRoleMgtRole%%",
+  "description": "A role that allows the user to create and modiify roles from MarkLogic Data Hub databases",
+  "role": [
+  ],
+  "privilege": [
+    {
+      "privilege-name": "create-role",
+      "action": "http://marklogic.com/xdmp/privileges/create-role",
+      "kind": "execute"
+    },
+    {
+      "privilege-name": "role-add-roles",
+      "action": "http://marklogic.com/xdmp/privileges/role-add-roles",
+      "kind":"execute"
+    },
+    {
+      "privilege-name": "role-exists",
+      "action": "http://marklogic.com/xdmp/privileges/get-role",
+      "kind":"execute"
+    },
+    {
+      "privilege-name": "role-remove-roles",
+      "action": "http://marklogic.com/xdmp/privileges/role-remove-roles",
+      "kind":"execute"
+    },
+    {
+      "privilege-name": "grant-my-roles",
+      "action": "http://marklogic.com/xdmp/privileges/grant-my-roles",
+      "kind":"execute"
+    },
+    {
+      "privilege-name": "grant-all-roles",
+      "action": "http://marklogic.com/xdmp/privileges/grant-all-roles",
+      "kind":"execute"
+    }
+  ]
+}

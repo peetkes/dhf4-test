@@ -1,15 +1,15 @@
 version: '3'
 services:
-  node1:
+  dhf412:
     build: "./src/main/docker/marklogic"
-    image: "marklogic:latest"
+    image: "marklogic:9.0-7.2"
     ports:
     # choose what ports you want to expose (at least 8000 8001 8002)
       - "8000-8050:8000-8050"
-    hostname: "node1.single"
-    container_name: "node1.single"
+    hostname: "dhf41.local"
+    container_name: "dhf41.local"
     volumes:
-       - ./logs/node1:/var/opt/MarkLogic/Logs
+       - ./logs/dhf41:/var/opt/MarkLogic/Logs
 
 # optionally specify the subnet
 #networks:
